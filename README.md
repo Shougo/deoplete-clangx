@@ -9,8 +9,6 @@
 
 ## Todo
 
-* .clang, .clang_complete file support
-
 * compile_commands.json file support
 
 * options support

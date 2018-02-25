@@ -6,10 +6,10 @@
 import re
 import os.path
 import subprocess
+import shlex
 from itertools import chain
 
-from deoplete.util import getlines
-# from deoplete.util import error
+from deoplete.util import getlines, error
 from .base import Base
 
 
@@ -36,6 +36,8 @@ class Source(Base):
         line = context['position'][1]
         column = context['complete_position']
         lang = 'c++' if context['filetype'] == 'cpp' else 'c'
+        buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
+
         args = [
             'clang', '-x', lang, '-fsyntax-only',
             '-Xclang', '-code-completion-macros',
@@ -44,7 +46,9 @@ class Source(Base):
             '-I', os.path.dirname(context['bufpath']),
         ]
         args += self._args_from_neoinclude(context)
-        buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
+        args += self._args_from_clang(context, '.clang')
+        args += self._args_from_clang(context, '.clang_complete')
+
         try:
             proc = subprocess.Popen(args=args,
                                     stdin=subprocess.PIPE,
@@ -56,6 +60,7 @@ class Source(Base):
         except subprocess.TimeoutExpired as e:
             proc.kill()
             return []
+
         return self._parse_lines(result.splitlines())
 
     def _args_from_neoinclude(self, context):
@@ -69,6 +74,18 @@ class Source(Base):
                            context['bufnr'],
                            context['filetype']).replace(';', ',').split(',')
              if x != '']))
+
+    def _args_from_clang(self, context, name):
+        clang_file = self.vim.call('findfile', name, '.;')
+        if not clang_file:
+            return []
+
+        try:
+            with open(clang_file) as f:
+                return shlex.split(' '.join(f.readlines()))
+        except Exception as e:
+            error(self.vim, 'Parse Failed: ' + clang_file)
+        return []
 
     def _parse_lines(self, lines):
         candidates = []
