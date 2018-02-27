@@ -24,6 +24,13 @@ class Source(Base):
         self.executable_clang = self.vim.call('executable', 'clang')
         self.encoding = self.vim.eval('&encoding')
         self.input_pattern = r'\.[a-zA-Z0-9_?!]*|[a-zA-Z]\w*::\w*|->\w*'
+        self._args = []
+
+    def on_event(self, context):
+        self._args = []
+        self._args += self._args_from_neoinclude(context)
+        self._args += self._args_from_clang(context, '.clang')
+        self._args += self._args_from_clang(context, '.clang_complete')
 
     def get_complete_position(self, context):
         m = re.search('[a-zA-Z0-9_]*$', context['input'])
@@ -45,9 +52,7 @@ class Source(Base):
             '-',
             '-I', os.path.dirname(context['bufpath']),
         ]
-        args += self._args_from_neoinclude(context)
-        args += self._args_from_clang(context, '.clang')
-        args += self._args_from_clang(context, '.clang_complete')
+        args += self._args
 
         try:
             proc = subprocess.Popen(args=args,
@@ -67,6 +72,9 @@ class Source(Base):
         if not self.vim.call(
                 'exists', '*neoinclude#get_path'):
             return []
+
+        # Make cache
+        self.vim.call('neoinclude#include#get_include_files')
 
         return list(chain.from_iterable(
             [['-I', x] for x in
