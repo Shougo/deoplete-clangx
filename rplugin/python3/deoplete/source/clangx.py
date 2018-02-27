@@ -34,7 +34,7 @@ class Source(Base):
             return []
 
         line = context['position'][1]
-        column = context['complete_position']
+        column = context['complete_position'] + 1
         lang = 'c++' if context['filetype'] == 'cpp' else 'c'
         buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
 
@@ -99,7 +99,7 @@ class Source(Base):
 
             menu = m.group(2)
             menu = menu.replace('[#', '')
-            menu = menu.replace('#]', '')
+            menu = menu.replace('#]', ' ')
             menu = menu.replace('<#', '')
             menu = menu.replace('#>', '')
             menu = menu.replace('{#', '')
