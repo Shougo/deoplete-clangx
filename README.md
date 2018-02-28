@@ -9,12 +9,20 @@
 
 ## Customization
 
-* deoplete-clangx supports neoinclude plugin
+### neoinclude
+
+deoplete-clangx supports neoinclude plugin
+
 https://github.com/Shougo/neoinclude.vim/
 
-It adds include directory options(-I) automatically for clang.
+neoinclude adds include directory options(-I) automatically for clang.
 
-* ".clang" or ".clang_complete" file is supported
+
+### ".clang" or ".clang_complete" file
+
+You can configure compiler options using the file.
+
+https://github.com/Rip-Rip/clang_complete#minimum-configuration
 
 
 ## Todo
