@@ -24,13 +24,25 @@ class Source(Base):
         self.executable_clang = self.vim.call('executable', 'clang')
         self.encoding = self.vim.eval('&encoding')
         self.input_pattern = r'\.[a-zA-Z0-9_?!]*|[a-zA-Z]\w*::\w*|->\w*'
+        self.vars = {
+            'clang_binary': 'clang',
+            'default_c_options': '',
+            'default_cpp_options': '',
+        }
+
         self._args = []
 
     def on_event(self, context):
-        self._args = []
-        self._args += self._args_from_neoinclude(context)
-        self._args += self._args_from_clang(context, '.clang')
-        self._args += self._args_from_clang(context, '.clang_complete')
+        self._args = self._args_from_neoinclude(context)
+
+        clang = self._args_from_clang(context, '.clang')
+        clang += self._args_from_clang(context, '.clang_complete')
+        if clang:
+            self._args += clang
+        else:
+            self._args += (self.vars['default_cpp_options']
+                           if context['filetype'] == 'cpp'
+                           else self.vars['default_c_options'])
 
     def get_complete_position(self, context):
         m = re.search('[a-zA-Z0-9_]*$', context['input'])
@@ -46,7 +58,8 @@ class Source(Base):
         buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
 
         args = [
-            'clang', '-x', lang, '-fsyntax-only',
+            self.vars['clang_binary'],
+            '-x', lang, '-fsyntax-only',
             '-Xclang', '-code-completion-macros',
             '-Xclang', '-code-completion-at=-:{}:{}'.format(line, column),
             '-',
