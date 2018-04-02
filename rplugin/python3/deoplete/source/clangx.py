@@ -133,5 +133,6 @@ class Source(Base):
             candidate = {'word': word, 'dup': 1}
             if menu != word:
                 candidate['menu'] = menu
+                candidate['info'] = menu
             candidates.append(candidate)
         return candidates
