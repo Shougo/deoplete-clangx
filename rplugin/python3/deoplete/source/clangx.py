@@ -102,7 +102,7 @@ class Source(Base):
             return []
 
         try:
-            with open(clang_file) as f:
+            with open(context['cwd'] + "/" + clang_file) as f:
                 return shlex.split(' '.join(f.readlines()))
         except Exception as e:
             error(self.vim, 'Parse Failed: ' + clang_file)
