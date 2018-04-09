@@ -101,6 +101,8 @@ class Source(Base):
         if not clang_file:
             return []
 
+        clang_file = self.vim.call('fnamemodify', clang_file, ':p')
+
         try:
             with open(clang_file) as f:
                 return shlex.split(' '.join(f.readlines()))
