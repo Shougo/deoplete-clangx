@@ -5,6 +5,7 @@
 
 import re
 import os.path
+from os.path import expanduser, expandvars, dirname
 import subprocess
 import shlex
 from itertools import chain
@@ -14,6 +15,8 @@ from .base import Base
 
 
 class Source(Base):
+    run_dir = ''
+
     def __init__(self, vim):
         Base.__init__(self, vim)
 
@@ -35,6 +38,7 @@ class Source(Base):
     def on_event(self, context):
         self._args = self._args_from_neoinclude(context)
 
+        Source.run_dir = context['cwd']
         clang = self._args_from_clang(context, '.clang')
         clang += self._args_from_clang(context, '.clang_complete')
         if clang:
@@ -72,7 +76,7 @@ class Source(Base):
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL,
-                                    cwd=context['cwd'])
+                                    cwd=Source.run_dir)
             result, errs = proc.communicate(buf, timeout=10)
             result = result.decode(self.encoding)
         except subprocess.TimeoutExpired as e:
@@ -105,7 +109,10 @@ class Source(Base):
 
         try:
             with open(clang_file) as f:
-                return shlex.split(' '.join(f.readlines()))
+                args = shlex.split(' '.join(f.readlines()))
+                args = [expanduser(expandvars(p)) for p in args]
+                Source.run_dir = dirname(clang_file)
+                return args
         except Exception as e:
             error(self.vim, 'Parse Failed: ' + clang_file)
         return []
