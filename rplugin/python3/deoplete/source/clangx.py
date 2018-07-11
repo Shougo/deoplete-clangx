@@ -5,7 +5,8 @@
 
 import re
 import os.path
-from os.path import expanduser, expandvars, dirname
+from os.path import expanduser, expandvars, dirname, isabs, isfile, join
+from pathlib import Path
 import subprocess
 import shlex
 from itertools import chain
@@ -31,6 +32,7 @@ class Source(Base):
             'clang_binary': 'clang',
             'default_c_options': '',
             'default_cpp_options': '',
+            'clang_file_path': ['.clang', '.clang_complete'],
         }
 
         self._args = []
@@ -38,9 +40,8 @@ class Source(Base):
     def on_event(self, context):
         self._args = self._args_from_neoinclude(context)
 
-        Source.run_dir = context['cwd']
-        clang = self._args_from_clang(context, '.clang')
-        clang += self._args_from_clang(context, '.clang_complete')
+        self.run_dir = context['cwd']
+        clang = self._args_from_clang(context, self.vars['clang_file_path'])
         if clang:
             self._args += clang
         else:
@@ -76,7 +77,7 @@ class Source(Base):
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL,
-                                    cwd=Source.run_dir)
+                                    cwd=self.run_dir)
             result, errs = proc.communicate(buf, timeout=10)
             result = result.decode(self.encoding)
         except subprocess.TimeoutExpired as e:
@@ -100,18 +101,30 @@ class Source(Base):
                            context['filetype']).replace(';', ',').split(',')
              if x != '']))
 
-    def _args_from_clang(self, context, name):
-        clang_file = self.vim.call('findfile', name, '.;')
+    def _find_clang_file(self, context, names):
+        cwd = Path(context['cwd'])
+        dirs = [cwd.resolve()] + list(cwd.parents)
+        for d in dirs:
+            d = str(d)
+            for name in names:
+                if isabs(name):
+                    if isfile(name):
+                        return name, dirname(name)
+                else:
+                    clang_file = join(d, name)
+                    if isfile(clang_file):
+                        return clang_file, d
+        return [], self.run_dir
+
+    def _args_from_clang(self, context, names):
+        clang_file, self.run_dir = self._find_clang_file(context, names)
         if not clang_file:
             return []
-
-        clang_file = self.vim.call('fnamemodify', clang_file, ':p')
 
         try:
             with open(clang_file) as f:
                 args = shlex.split(' '.join(f.readlines()))
                 args = [expanduser(expandvars(p)) for p in args]
-                Source.run_dir = dirname(clang_file)
                 return args
         except Exception as e:
             error(self.vim, 'Parse Failed: ' + clang_file)
