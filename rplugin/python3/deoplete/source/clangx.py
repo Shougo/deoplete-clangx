@@ -57,6 +57,9 @@ class Source(Base):
         if not self.executable_clang:
             return []
 
+        if not self.run_dir:
+            self.run_dir = context['cwd']
+
         line = context['position'][1]
         column = context['complete_position'] + 1
         lang = 'c++' if context['filetype'] == 'cpp' else 'c'
