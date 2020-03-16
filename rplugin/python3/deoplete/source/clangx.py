@@ -41,13 +41,14 @@ class Source(Base):
         self._args = self._args_from_neoinclude(context)
 
         self.run_dir = context['cwd']
-        clang = self._args_from_clang(context, self.vars['clang_file_path'])
+        clang = self._args_from_clang(context,
+                                      self.get_var('clang_file_path'))
         if clang:
             self._args += clang
         else:
-            self._args += (self.vars['default_cpp_options']
+            self._args += (self.get_var('default_cpp_options')
                            if context['filetype'] == 'cpp'
-                           else self.vars['default_c_options'])
+                           else self.get_var('default_c_options'))
 
     def get_complete_position(self, context):
         m = re.search('[a-zA-Z0-9_]*$', context['input'])
@@ -66,7 +67,7 @@ class Source(Base):
         buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
 
         args = [
-            self.vars['clang_binary'],
+            self.get_var('clang_binary'),
             '-x', lang, '-fsyntax-only',
             '-Xclang', '-code-completion-macros',
             '-Xclang', '-code-completion-at=-:{}:{}'.format(line, column),
