@@ -15,6 +15,15 @@ from deoplete.util import getlines, error
 from .base import Base
 
 
+# vim filetype -----> clang -x `language`
+lang_for_ft = {
+    'c': 'c',
+    'cpp': 'c++',
+    'objc': 'objective-c',
+    'objcpp': 'objective-c++',
+}
+
+
 class Source(Base):
     run_dir = ''
 
@@ -22,7 +31,7 @@ class Source(Base):
         Base.__init__(self, vim)
 
         self.name = 'clangx'
-        self.filetypes = ['c', 'cpp']
+        self.filetypes = ['c', 'cpp', 'objc', 'objcpp']
         self.mark = '[clangx]'
         self.rank = 500
         self.executable_clang = self.vim.call('executable', 'clang')
@@ -47,7 +56,7 @@ class Source(Base):
             self._args += clang
         else:
             self._args += (self.get_var('default_cpp_options')
-                           if context['filetype'] == 'cpp'
+                           if context['filetype'] in ('cpp', 'objcpp')
                            else self.get_var('default_c_options'))
 
     def get_complete_position(self, context):
@@ -63,7 +72,7 @@ class Source(Base):
 
         line = context['position'][1]
         column = context['complete_position'] + 1
-        lang = 'c++' if context['filetype'] == 'cpp' else 'c'
+        lang = lang_for_ft.get(context['filetype'], 'c')
         buf = '\n'.join(getlines(self.vim)).encode(self.encoding)
 
         args = [
